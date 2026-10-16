@@ -9,9 +9,11 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
-  group: deploy
+  group: pages
   cancel-in-progress: false
 
 env:
@@ -20,9 +22,9 @@ env:
 jobs:
   sync-deploy:
     runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,12 +47,9 @@ jobs:
           git commit -m "Sync fleet data $(cat data/updated.txt)" || echo "No changes"
           git push
 
-      # Deploy to Cloudflare Pages (works from a private repo on the free plan).
-      # Skipped until the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets are set.
-      - name: Deploy to Cloudflare Pages
-        if: env.CLOUDFLARE_API_TOKEN != ''
-        run: |
-          mkdir -p _site
-          cp -r index.html data _site/
-          npx --yes wrangler@3 pages project create fleet-kiosk --production-branch=main || true
-          npx --yes wrangler@3 pages deploy _site --project-name=fleet-kiosk --branch=main
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

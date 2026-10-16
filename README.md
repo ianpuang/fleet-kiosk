@@ -1,6 +1,6 @@
 # WeMAL Fleet Health kiosk
 
-Static kiosk page served by Cloudflare Pages from a private repo. A GitHub Action pulls the published
+Static kiosk page served by GitHub Pages. A GitHub Action pulls the published
 maintenance sheet (CSV) every 3 hours, commits a snapshot to `data/`, and redeploys.
 The open kiosk page re-reads the snapshot every 15 minutes, so it picks up each sync
 without a manual refresh.
@@ -12,16 +12,9 @@ without a manual refresh.
 - `.github/workflows/sync-and-deploy.yml` — fetch + commit + deploy, every 3 h
 
 ## Setup
-1. Cloudflare dashboard → My Profile → API Tokens → Create token with
-   **Account → Cloudflare Pages → Edit**. Note your Account ID (Workers & Pages overview).
-2. GitHub repo → Settings → Secrets and variables → Actions → add
-   `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-3. Actions tab → "Sync fleet sheet and deploy" → **Run workflow**. This creates the
-   `fleet-kiosk` Pages project and deploys it to `https://fleet-kiosk.pages.dev`.
-4. Cloudflare → Workers & Pages → fleet-kiosk → Custom domains → add `fleet.ianpuang.com`.
-5. Optional: Cloudflare Zero Trust → Access → protect the hostname so only approved
-   people/devices can view it (the page is otherwise public to anyone with the URL).
-6. Open the URL on the kiosk, full screen (F11 / kiosk mode).
+Live at https://ianpuang.github.io/fleet-kiosk/ (public repo, GitHub Pages via Actions).
+Open it on the kiosk full screen (F11 / kiosk mode). For a manual refresh:
+Actions tab → "Sync fleet sheet and deploy" → **Run workflow**.
 
 ## Rules (edit `CONFIG` at the top of the script in index.html)
 - Overdue: current mileage past next service (or past the date for date-only vehicles)
