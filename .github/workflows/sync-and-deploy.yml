@@ -1,0 +1,56 @@
+name: Sync fleet sheet and deploy
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"   # every 3 hours (UTC). GitHub may start it a few minutes late.
+  workflow_dispatch:         # "Run workflow" button for a manual refresh
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  SHEET_CSV_URL: https://docs.google.com/spreadsheets/d/e/2PACX-1vQFR4gLNh98elyMPUuyc-oVN2DwcNd44-_jGEs5r2FVnkMmBk4LvDT57lKWIICaAJWsqcvDJ_h75sVK/pub?output=csv
+
+jobs:
+  sync-deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch sheet CSV
+        run: |
+          curl -fsSL "$SHEET_CSV_URL" -o /tmp/fleet.csv
+          # Refuse to overwrite good data with an error page or a broken sheet
+          if ! head -n 1 /tmp/fleet.csv | grep -qi "plate number"; then
+            echo "::error::Header row missing 'Plate Number' - sheet layout changed or fetch failed"
+            exit 1
+          fi
+          cp /tmp/fleet.csv data/fleet.csv
+          date -u +%Y-%m-%dT%H:%M:%SZ > data/updated.txt
+
+      - name: Commit data snapshot
+        run: |
+          git config user.name "fleet-sync-bot"
+          git config user.email "fleet-sync-bot@users.noreply.github.com"
+          git add data/
+          git commit -m "Sync fleet data $(cat data/updated.txt)" || echo "No changes"
+          git push
+
+      # Deploy to Cloudflare Pages (works from a private repo on the free plan).
+      # Skipped until the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets are set.
+      - name: Deploy to Cloudflare Pages
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          mkdir -p _site
+          cp -r index.html data _site/
+          npx --yes wrangler@3 pages project create fleet-kiosk --production-branch=main || true
+          npx --yes wrangler@3 pages deploy _site --project-name=fleet-kiosk --branch=main

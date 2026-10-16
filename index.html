@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WeMAL Fleet Health</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  :root {
+    --ink: #F2F5F9;
+    --ink-2: rgba(235,240,245,0.74);
+    --ink-3: rgba(235,240,245,0.6);
+    --red: rgba(255,59,48,0.62);
+    --amber: rgba(255,159,10,0.82);
+    --amber-ink: #1C1300;
+    --green: #34C759;
+    --glass: rgba(255,255,255,0.08);
+    --glass-edge: rgba(255,255,255,0.18);
+    --sans: -apple-system, "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #05070D; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; font-family: var(--sans); color: var(--ink); }
+
+  #stage { width: 1920px; height: 1080px; position: relative; overflow: hidden; flex: none; transform-origin: center center; background: #05070D; }
+  .orb { position: absolute; border-radius: 50%; pointer-events: none; }
+  .glass {
+    background: var(--glass);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 12px 32px rgba(0,0,0,0.35);
+  }
+
+  .view { position: absolute; inset: 0; padding: 32px 40px 28px; display: flex; flex-direction: column; gap: 22px; transition: opacity 0.8s ease; }
+  .view.hidden { opacity: 0; pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) { .view { transition: none; } }
+
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+  .title h1 { margin: 0; font-weight: 700; font-size: 54px; letter-spacing: -1px; line-height: 1; }
+  .title p { margin: 4px 0 0; font-size: 21px; color: var(--ink-2); }
+  .title { padding-left: 8px; }
+
+  .counts { display: flex; gap: 12px; padding: 10px; border-radius: 40px; }
+  .count { display: flex; align-items: center; gap: 12px; padding: 10px 24px; border-radius: 30px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35); }
+  .count b { font-family: var(--mono); font-size: 40px; line-height: 1; }
+  .count span { font-size: 17px; font-weight: 600; }
+  .c-over { background: rgba(255,59,48,0.7); }
+  .c-due { background: rgba(255,159,10,0.85); color: var(--amber-ink); }
+  .c-ok { background: rgba(255,255,255,0.1); } .c-ok span { color: #4CD964; }
+  .c-none { background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.4); box-shadow: none; }
+
+  .clock { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding: 14px 28px; border-radius: 32px; }
+  .clock b { font-weight: 600; font-size: 44px; letter-spacing: -1px; line-height: 1; }
+  .clock span { font-size: 18px; color: var(--ink-2); }
+
+  .grid { flex: 1; min-height: 0; display: grid; gap: 18px; }
+  .tile { border-radius: 30px; padding: 20px 22px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; min-height: 0;
+    backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.38), inset 0 -1px 0 rgba(255,255,255,0.06), 0 14px 34px rgba(0,0,0,0.38); }
+  .tile .row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .plate { font-weight: 700; font-size: 36px; letter-spacing: -0.5px; line-height: 1; white-space: nowrap; }
+  .chip { font-size: 15px; font-weight: 600; padding: 6px 13px; border-radius: 20px; white-space: nowrap; }
+  .model, .item, .foot { color: var(--sub); }
+  .model { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .spacer { flex: 1; }
+  .item { font-size: 19px; font-weight: 500; }
+  .remain { font-weight: 700; font-size: 34px; letter-spacing: -0.5px; line-height: 1.15; }
+  .track { height: 10px; border-radius: 5px; overflow: hidden; margin: 8px 0; background: var(--track); }
+  .track i { display: block; height: 10px; border-radius: 5px; background: var(--bar); }
+  .foot { display: flex; justify-content: space-between; gap: 10px; font-size: 17px; }
+  .foot span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .foot span:last-child { white-space: nowrap; font-family: var(--mono); }
+
+  .s-overdue { background: rgba(255,59,48,0.62); color: #fff; border: 1px solid rgba(255,180,175,0.55); --sub: rgba(255,240,240,0.88); --track: rgba(255,255,255,0.25); --bar: #fff; }
+  .s-overdue .chip, .s-check .chip { background: rgba(255,255,255,0.92); color: #B3170E; }
+  .s-check { background: rgba(255,59,48,0.5); color: #fff; border: 2px dashed rgba(255,255,255,0.7); --sub: rgba(255,240,240,0.88); --track: rgba(255,255,255,0.25); --bar: #fff; }
+  .s-due { background: rgba(255,159,10,0.8); color: var(--amber-ink); border: 1px solid rgba(255,225,160,0.7); --sub: rgba(28,19,0,0.78); --track: rgba(0,0,0,0.18); --bar: var(--amber-ink); }
+  .s-due .chip { background: rgba(28,19,0,0.85); color: #FFD08A; }
+  .s-ok { background: rgba(255,255,255,0.08); color: var(--ink); border: 1px solid var(--glass-edge); --sub: var(--ink-2); --track: rgba(255,255,255,0.12); --bar: var(--green); }
+  .s-ok .chip { background: rgba(52,199,89,0.9); color: #03240C; }
+  .s-nodata { background: rgba(255,255,255,0.04); color: var(--ink); border: 2px dashed rgba(255,255,255,0.35); --sub: rgba(235,240,245,0.78); --track: rgba(255,255,255,0.1); --bar: rgba(255,255,255,0.4); }
+  .s-nodata .chip { background: rgba(255,255,255,0.22); color: #fff; }
+
+  .footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: 18px; color: var(--ink-2); padding: 14px 28px; border-radius: 30px; }
+  .footer strong { color: #fff; font-weight: 600; }
+  .stale { background: rgba(255,159,10,0.9); color: var(--amber-ink); padding: 4px 12px; border-radius: 16px; font-weight: 600; }
+
+  .cols { flex: 1; min-height: 0; display: flex; gap: 22px; }
+  .panel { border-radius: 34px; padding: 24px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
+  .panel h2 { margin: 0; font-weight: 700; font-size: 30px; letter-spacing: -0.3px; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; padding: 0 6px 4px; }
+  .badge { font-weight: 700; font-size: 20px; padding: 6px 16px; border-radius: 20px; background: rgba(255,159,10,0.85); color: var(--amber-ink); }
+  .qrow, .qhead { display: grid; grid-template-columns: 190px 170px minmax(0,1fr) 260px 140px; gap: 16px; align-items: center; }
+  .qhead { font-size: 16px; font-weight: 600; color: var(--ink-3); padding: 0 20px 4px; }
+  .qrow { font-size: 22px; padding: 16px 20px; border-radius: 24px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.4); }
+  .qrow > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qrow .km { font-weight: 700; font-size: 24px; }
+  .qrow .pl { font-weight: 700; font-size: 26px; }
+  .qrow .ls { font-family: var(--mono); font-size: 18px; }
+  .q-over { background: rgba(255,59,48,0.6); color: #fff; border: 1px solid rgba(255,180,175,0.5); }
+  .q-due { background: rgba(255,159,10,0.82); color: var(--amber-ink); border: 1px solid rgba(255,225,160,0.7); }
+  .note { display: flex; flex-direction: column; gap: 3px; padding: 12px 18px; border-radius: 20px; background: rgba(255,255,255,0.08); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
+  .note b { font-size: 21px; font-weight: 600; }
+  .note span { font-size: 18px; color: var(--ink-2); }
+  .note.inline { flex-direction: row; justify-content: space-between; align-items: center; padding: 14px 18px; }
+  .pill { font-size: 15px; font-weight: 600; padding: 6px 13px; border-radius: 20px; }
+  .pill.over { background: rgba(255,59,48,0.85); color: #fff; }
+  .pill.due { background: rgba(255,159,10,0.9); color: var(--amber-ink); }
+  .pill.ok { background: rgba(52,199,89,0.9); color: #03240C; }
+  .pill.none { background: rgba(255,255,255,0.22); color: #fff; }
+  .empty { font-size: 20px; color: var(--ink-2); padding: 8px 6px; }
+
+  #error { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 5; padding: 28px 36px; border-radius: 30px; font-size: 24px; max-width: 900px; text-align: center; display: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="orb" style="width:1100px;height:1100px;left:-320px;top:-420px;background:radial-gradient(circle,rgba(10,132,255,.55) 0%,rgba(10,132,255,0) 65%)"></div>
+  <div class="orb" style="width:1200px;height:1200px;right:-360px;bottom:-520px;background:radial-gradient(circle,rgba(175,82,222,.5) 0%,rgba(175,82,222,0) 65%)"></div>
+  <div class="orb" style="width:900px;height:900px;left:640px;top:260px;background:radial-gradient(circle,rgba(48,176,199,.32) 0%,rgba(48,176,199,0) 65%)"></div>
+  <div class="orb" style="width:800px;height:800px;left:-200px;bottom:-380px;background:radial-gradient(circle,rgba(255,69,58,.32) 0%,rgba(255,69,58,0) 65%)"></div>
+
+  <section class="view" id="v1" aria-label="Fleet health">
+    <div class="top">
+      <div class="title"><h1>Fleet Health</h1><p>WeMAL vehicles, most urgent first</p></div>
+      <div class="counts glass" id="counts"></div>
+      <div class="clock glass"><b class="t">--:--</b><span class="d"></span></div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="footer glass">
+      <span class="sync">Loading fleet data</span>
+      <span>Due soon means 2,000 km or 14 days left. The bar shows how much of the service interval is used.</span>
+      <strong>Service queue next</strong>
+    </div>
+  </section>
+
+  <section class="view hidden" id="v2" aria-label="Service queue">
+    <div class="top">
+      <div class="title"><h1>Service Queue</h1><p>Send these to the workshop first, then fix the data gaps</p></div>
+      <div class="clock glass"><b class="t">--:--</b><span class="d"></span></div>
+    </div>
+    <div class="cols">
+      <div class="panel glass" style="flex:3 1 0;min-width:0">
+        <div class="panel-head"><h2>Due now and due soon</h2></div>
+        <div class="qhead"><div>Km</div><div>Vehicle</div><div>Model</div><div>PIC</div><div>Last service</div></div>
+        <div id="queue" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+      <div style="flex:2 1 0;min-width:0;display:flex;flex-direction:column;gap:22px;min-height:0">
+        <div class="panel glass"><div class="panel-head"><h2>Data gaps</h2><span class="badge" id="gapCount">0</span></div><div id="gaps" style="display:flex;flex-direction:column;gap:10px"></div></div>
+        <div class="panel glass" style="flex:1"><div class="panel-head"><h2>No PIC assigned</h2><span class="badge" id="nopicCount">0</span></div><div id="nopic" style="display:flex;flex-direction:column;gap:10px"></div></div>
+      </div>
+    </div>
+    <div class="footer glass">
+      <span class="sync">Loading fleet data</span>
+      <span>Service done? Update the sheet with the new mileage to reset the vehicle.</span>
+      <strong>Fleet health next</strong>
+    </div>
+  </section>
+
+  <div id="error" class="glass"></div>
+</div>
+
+<script>
+const CONFIG = {
+  csvUrl: "data/fleet.csv",
+  updatedUrl: "data/updated.txt",
+  dueSoonKm: 2000,
+  dueSoonDays: 14,
+  rotateSeconds: 20,
+  reloadMinutes: 15,       // re-read the local snapshot; the Action refreshes it every 3 hours
+  staleHours: 7,           // warn if the Action hasn't synced for this long
+  tz: "Asia/Kuching"
+};
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => Math.round(n).toLocaleString("en-MY");
+const DAY = 86400000;
+
+function fit() {
+  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  $("#stage").style.transform = `scale(${s})`;
+}
+addEventListener("resize", fit); fit();
+
+function parseCSV(text) {
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (c === '"') q = false;
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+    else if (c !== "\r") cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+const isDate = (s) => /^\d{1,2}\/\d{1,2}\/\d{4}$/.test((s || "").trim());
+function num(s) { s = (s || "").trim(); if (!s || isDate(s)) return null; const n = Number(s.replace(/,/g, "")); return Number.isFinite(n) ? n : null; }
+function dt(s) { const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec((s || "").trim()); return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null; }
+const clamp = (v) => Math.max(0, Math.min(100, v));
+function titleCase(n) {
+  n = (n || "").trim();
+  if (!n || /^n\/?a$/i.test(n)) return null;
+  return n.toLowerCase().split(/\s+/).map((w) => (w === "ak" || w === "@" ? w : w[0].toUpperCase() + w.slice(1))).join(" ");
+}
+function modelCase(m) { return (m || "").toLowerCase().replace(/(^|[\s(])(\w)/g, (a, b, c) => b + c.toUpperCase()); }
+function fmtDate(d) { return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }
+
+function analyse(rows) {
+  const head = rows[0].map((h) => h.trim().toUpperCase());
+  const col = (name) => head.indexOf(name);
+  const C = { plate: col("PLATE NUMBER"), model: col("VEHICLE MODEL"), pic: col("PIC"), cur: col("CURRENT MILEAGE"), last: col("LAST SERVICE"), next: col("NEXT SERVICE"), status: col("SERVICE STATUS") };
+  if (C.plate < 0) throw new Error("The sheet has no 'Plate Number' column. Check that the header row hasn't been renamed.");
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  return rows.slice(1).filter((r) => (r[C.plate] || "").trim()).map((r) => {
+    const g = (k) => (C[k] >= 0 ? r[C[k]] : "");
+    const v = { plate: g("plate").trim(), model: modelCase(g("model")), pic: titleCase(g("pic")), gaps: [] };
+    const cur = num(g("cur")), last = num(g("last")), next = num(g("next"));
+    const lastD = dt(g("last")), nextD = dt(g("next"));
+    const sheetDue = /due/i.test(g("status"));
+    v.odo = cur != null ? fmt(cur) + " km" : "no odo";
+    v.lastText = last != null ? fmt(last) : lastD ? fmtDate(lastD) : "—";
+
+    if (cur == null && next == null && !nextD) {
+      Object.assign(v, { s: "nodata", item: "No records", remain: "Enter mileage", pct: 0, key: 0 });
+      v.gaps.push("No mileage or service records");
+    } else if (nextD && cur == null) {
+      const days = Math.round((nextD - today) / DAY);
+      const span = lastD ? Math.max(1, Math.round((nextD - lastD) / DAY)) : 90;
+      Object.assign(v, {
+        s: days < 0 ? "overdue" : days <= CONFIG.dueSoonDays || sheetDue ? "due" : "ok",
+        item: "By " + fmtDate(nextD),
+        remain: days < 0 ? `${-days} days over` : `${days} days left`,
+        pct: clamp(((span - days) / span) * 100), key: days * 60
+      });
+      v.gaps.push("No odometer, date-based only");
+    } else if (cur == null) {
+      Object.assign(v, { s: "nodata", item: "No current mileage", remain: "Enter mileage", pct: 0, key: 0 });
+      v.gaps.push("Current mileage blank");
+    } else if (next == null) {
+      Object.assign(v, { s: "check", item: "Next service blank", remain: "Set next service", pct: 100, key: 0 });
+      v.gaps.push("Next service blank");
+    } else {
+      const left = next - cur;
+      v.key = left;
+      v.pct = last != null && next > last ? clamp(((cur - last) / (next - last)) * 100) : left < 0 ? 100 : 50;
+      v.item = "Service";
+      v.remain = left < 0 ? `${fmt(-left)} km over` : `${fmt(left)} km left`;
+      v.s = left < 0 ? "overdue" : left <= CONFIG.dueSoonKm || sheetDue ? "due" : "ok";
+      if (left < -20000) {
+        v.s = "check"; v.item = "Sheet says due"; v.remain = "Odo mismatch";
+        v.gaps.push(`Odometer ${fmt(cur)} vs next service ${fmt(next)}`);
+      }
+      if (last != null && next <= last) v.gaps.push(next === last ? `Next service same as last (${fmt(last)})` : "Next service lower than last");
+      if (last == null && !lastD) v.gaps.push("Last service blank");
+    }
+    return v;
+  });
+}
+
+const RANK = { overdue: 0, check: 1, nodata: 2, due: 3, ok: 4 };
+const LABEL = { overdue: "Overdue", check: "Check data", nodata: "No data", due: "Due soon", ok: "OK" };
+
+function render(fleet, updatedAt) {
+  fleet.sort((a, b) => RANK[a.s] - RANK[b.s] || a.key - b.key);
+  const n = (s) => fleet.filter((v) => s.includes(v.s)).length;
+
+  $("#counts").innerHTML = `
+    <div class="count c-over"><b>${n(["overdue", "check"])}</b><span>Overdue</span></div>
+    <div class="count c-due"><b>${n(["due"])}</b><span>Due soon</span></div>
+    <div class="count c-ok"><b>${n(["ok"])}</b><span>OK</span></div>
+    <div class="count c-none"><b>${n(["nodata"])}</b><span>No data</span></div>`;
+
+  const cols = fleet.length > 20 ? 6 : 5;
+  const grid = $("#grid");
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
+  grid.style.gridTemplateRows = `repeat(${Math.max(1, Math.ceil(fleet.length / cols))}, minmax(0,1fr))`;
+  grid.innerHTML = fleet.map((v) => `
+    <div class="tile s-${v.s}">
+      <div class="row1"><div class="plate">${esc(v.plate)}</div><div class="chip">${LABEL[v.s]}</div></div>
+      <div class="model">${esc(v.model)}</div>
+      <div class="spacer"></div>
+      <div class="item">${esc(v.item)}</div>
+      <div class="remain">${esc(v.remain)}</div>
+      <div class="track"><i style="width:${v.pct.toFixed(0)}%"></i></div>
+      <div class="foot"><span>${esc(v.pic || "No PIC")}</span><span>${esc(v.odo)}</span></div>
+    </div>`).join("");
+
+  const queue = fleet.filter((v) => ["overdue", "check", "due"].includes(v.s)).slice(0, 8);
+  $("#queue").innerHTML = queue.length ? queue.map((v) => `
+    <div class="qrow ${v.s === "due" ? "q-due" : "q-over"}">
+      <div class="km">${esc(v.s === "check" ? "Check data" : v.remain.replace(/ km/, ""))}</div>
+      <div class="pl">${esc(v.plate)}</div>
+      <div>${esc(v.model)}</div>
+      <div>${esc(v.pic || "No PIC")}</div>
+      <div class="ls">${esc(v.lastText)}</div>
+    </div>`).join("") : `<div class="empty">Nothing due. Every vehicle is within its service interval.</div>`;
+
+  const noRecords = fleet.filter((v) => v.s === "nodata" && v.gaps[0] === "No mileage or service records");
+  const gapRows = fleet.filter((v) => v.gaps.length && !noRecords.includes(v)).map((v) => ({ title: `${v.plate}, ${v.model}`, text: v.gaps.join(". ") }));
+  if (noRecords.length) gapRows.push({ title: noRecords.map((v) => v.plate).join(", "), text: "No mileage or service records" });
+  const gapTotal = fleet.filter((v) => v.gaps.length).length;
+  $("#gapCount").textContent = gapTotal;
+  $("#gaps").innerHTML = gapRows.length ? gapRows.slice(0, 6).map((g) => `<div class="note"><b>${esc(g.title)}</b><span>${esc(g.text)}</span></div>`).join("") : `<div class="empty">No gaps. Every vehicle has complete records.</div>`;
+
+  const nopic = fleet.filter((v) => !v.pic);
+  const pillCls = { overdue: "over", check: "over", due: "due", ok: "ok", nodata: "none" };
+  $("#nopicCount").textContent = nopic.length;
+  $("#nopic").innerHTML = nopic.length ? nopic.slice(0, 5).map((v) => `<div class="note inline"><b>${esc(v.plate)}, ${esc(v.model)}</b><span class="pill ${pillCls[v.s]}">${LABEL[v.s]}</span></div>`).join("") : `<div class="empty">Every vehicle has a PIC.</div>`;
+
+  setSync(updatedAt);
+}
+
+let lastUpdated = null;
+function setSync(updatedAt) {
+  if (updatedAt) lastUpdated = updatedAt;
+  if (!lastUpdated) return;
+  const hrs = (Date.now() - lastUpdated.getTime()) / 3600000;
+  const ago = hrs < 1 ? `${Math.max(1, Math.round(hrs * 60))} min ago` : `${Math.floor(hrs)} h ago`;
+  const html = hrs > CONFIG.staleHours
+    ? `<span class="stale">Data not synced for ${Math.floor(hrs)} h. Check the GitHub Action.</span>`
+    : `Synced from the maintenance sheet ${ago}`;
+  document.querySelectorAll(".sync").forEach((el) => (el.innerHTML = html));
+}
+
+async function load() {
+  try {
+    const bust = "?t=" + Date.now();
+    const [csv, upd] = await Promise.all([
+      fetch(CONFIG.csvUrl + bust).then((r) => { if (!r.ok) throw new Error(`Couldn't load ${CONFIG.csvUrl} (HTTP ${r.status}).`); return r.text(); }),
+      fetch(CONFIG.updatedUrl + bust).then((r) => (r.ok ? r.text() : "")).catch(() => "")
+    ]);
+    const updatedAt = upd.trim() ? new Date(upd.trim()) : null;
+    render(analyse(parseCSV(csv)), updatedAt && !isNaN(updatedAt) ? updatedAt : null);
+    $("#error").style.display = "none";
+  } catch (e) {
+    const box = $("#error");
+    box.textContent = e.message + " Showing the last data that loaded.";
+    box.style.display = "block";
+  }
+}
+
+function tick() {
+  const now = new Date();
+  const t = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: CONFIG.tz });
+  const d = now.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: CONFIG.tz });
+  document.querySelectorAll(".clock .t").forEach((el) => (el.textContent = t));
+  document.querySelectorAll(".clock .d").forEach((el) => (el.textContent = d));
+  setSync();
+}
+
+let showing = 1;
+function rotate() {
+  showing = showing === 1 ? 2 : 1;
+  $("#v1").classList.toggle("hidden", showing !== 1);
+  $("#v2").classList.toggle("hidden", showing !== 2);
+}
+
+tick(); load();
+setInterval(tick, 30000);
+setInterval(load, CONFIG.reloadMinutes * 60000);
+setInterval(rotate, CONFIG.rotateSeconds * 1000);
+</script>
+</body>
+</html>
