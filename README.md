@@ -6,7 +6,7 @@ The open kiosk page re-reads the snapshot every 15 minutes, so it picks up each 
 without a manual refresh.
 
 ## Files
-- `index.html` — the kiosk (two screens, rotates every 20 s, scales to any 16:9 display)
+- `index.html` — the kiosk (two screens, rotates every 20 s; portrait 1080x1920 layout for the standing kiosk, landscape 1920x1080 otherwise)
 - `data/fleet.csv` — latest sheet snapshot (written by the Action)
 - `data/updated.txt` — UTC time of the last sync (drives the "Synced X h ago" footer)
 - `.github/workflows/sync-and-deploy.yml` — fetch + commit + deploy, every 3 h

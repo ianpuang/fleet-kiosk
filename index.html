@@ -65,7 +65,7 @@
   .plate { font-weight: 700; font-size: 36px; letter-spacing: -0.5px; line-height: 1; white-space: nowrap; }
   .chip { font-size: 15px; font-weight: 600; padding: 6px 13px; border-radius: 20px; white-space: nowrap; }
   .model, .item, .foot { color: var(--sub); }
-  .model { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .model { font-size: 19px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .spacer { flex: 1; }
   .item { font-size: 19px; font-weight: 500; }
   .remain { font-weight: 700; font-size: 34px; letter-spacing: -0.5px; line-height: 1.15; }
@@ -94,13 +94,14 @@
   .panel h2 { margin: 0; font-weight: 700; font-size: 30px; letter-spacing: -0.3px; }
   .panel-head { display: flex; justify-content: space-between; align-items: center; padding: 0 6px 4px; }
   .badge { font-weight: 700; font-size: 20px; padding: 6px 16px; border-radius: 20px; background: rgba(255,159,10,0.85); color: var(--amber-ink); }
-  .qrow, .qhead { display: grid; grid-template-columns: 190px 170px minmax(0,1fr) 260px 140px; gap: 16px; align-items: center; }
+  .qrow, .qhead { display: grid; grid-template-columns: 210px minmax(0,1fr) 320px; gap: 16px; align-items: center; }
   .qhead { font-size: 16px; font-weight: 600; color: var(--ink-3); padding: 0 20px 4px; }
-  .qrow { font-size: 22px; padding: 16px 20px; border-radius: 24px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.4); }
-  .qrow > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qrow { font-size: 22px; padding: 10px 20px; border-radius: 24px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.4); }
+  .qrow > div, .qrow .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qrow .sub { display: block; font-size: 17px; opacity: 0.85; }
   .qrow .km { font-weight: 700; font-size: 24px; }
   .qrow .pl { font-weight: 700; font-size: 26px; }
-  .qrow .ls { font-family: var(--mono); font-size: 18px; }
+  .qrow .ls { font-family: var(--mono); }
   .q-over { background: rgba(255,59,48,0.6); color: #fff; border: 1px solid rgba(255,180,175,0.5); }
   .q-due { background: rgba(255,159,10,0.82); color: var(--amber-ink); border: 1px solid rgba(255,225,160,0.7); }
   .note { display: flex; flex-direction: column; gap: 3px; padding: 12px 18px; border-radius: 20px; background: rgba(255,255,255,0.08); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
@@ -113,6 +114,49 @@
   .pill.ok { background: rgba(52,199,89,0.9); color: #03240C; }
   .pill.none { background: rgba(255,255,255,0.22); color: #fff; }
   .empty { font-size: 20px; color: var(--ink-2); padding: 8px 6px; }
+
+  /* Portrait kiosk (e.g. 43" screen standing up, 1080x1920) */
+  #stage.portrait { width: 1080px; height: 1920px; }
+  .portrait .view { padding: 44px 36px 36px; gap: 24px; }
+  .portrait .top { flex-wrap: wrap; row-gap: 22px; }
+  .portrait .title h1 { font-size: 66px; }
+  .portrait .title p { font-size: 24px; }
+  .portrait .counts { order: 3; width: 100%; border-radius: 36px; padding: 12px; gap: 12px; }
+  .portrait .count { flex: 1; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px 22px; border-radius: 26px; }
+  .portrait .count b { font-size: 64px; }
+  .portrait .count span { font-size: 22px; }
+  .portrait .clock b { font-size: 56px; }
+  .portrait .clock span { font-size: 22px; }
+  .portrait .grid { gap: 16px; }
+  .portrait .tile { padding: 18px 22px 16px; gap: 2px; }
+  .portrait .tile > * { flex-shrink: 0; }
+  .portrait .plate { font-size: 40px; }
+  .portrait .chip { font-size: 17px; padding: 6px 12px; }
+  .portrait .model { font-size: 22px; }
+  .portrait .item { font-size: 21px; }
+  .portrait .remain { font-size: 38px; }
+  .portrait .track, .portrait .track i { height: 12px; border-radius: 6px; }
+  .portrait .foot { font-size: 19px; }
+  .portrait .footer { flex-wrap: wrap; row-gap: 6px; font-size: 20px; padding: 18px 28px; }
+  .portrait .footer > span:nth-child(2) { order: 3; width: 100%; color: var(--ink-3); }
+  .portrait .row1 .chip, .chip2 { display: none; }
+  .portrait .chip2 { display: inline-block; }
+  .portrait .itemrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .portrait .cols { flex-direction: column; }
+  .portrait .side { flex-direction: row !important; flex: 1 1 0 !important; }
+  .portrait .side .panel { flex: 1 1 0; min-width: 0; }
+  .portrait .main { flex: 0 0 auto !important; }
+  .portrait .panel h2 { font-size: 36px; }
+  .portrait .qrow, .portrait .qhead { grid-template-columns: 230px minmax(0,1fr) 300px; }
+  .portrait .qhead { font-size: 18px; }
+  .portrait .qrow { padding: 18px 22px; }
+  .portrait .qrow .km { font-size: 32px; }
+  .portrait .qrow .pl { font-size: 32px; }
+  .portrait .qrow .sub { font-size: 21px; }
+  .portrait .note b { font-size: 23px; }
+  .portrait .note span { font-size: 20px; }
+  .portrait .note.inline { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .portrait .pill { font-size: 17px; }
 
   #error { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 5; padding: 28px 36px; border-radius: 30px; font-size: 24px; max-width: 900px; text-align: center; display: none; }
 </style>
@@ -144,12 +188,12 @@
       <div class="clock glass"><b class="t">--:--</b><span class="d"></span></div>
     </div>
     <div class="cols">
-      <div class="panel glass" style="flex:3 1 0;min-width:0">
+      <div class="panel glass main" style="flex:3 1 0;min-width:0">
         <div class="panel-head"><h2>Due now and due soon</h2></div>
-        <div class="qhead"><div>Km</div><div>Vehicle</div><div>Model</div><div>PIC</div><div>Last service</div></div>
+        <div class="qhead"><div>Km</div><div>Vehicle</div><div>PIC, last service</div></div>
         <div id="queue" style="display:flex;flex-direction:column;gap:10px"></div>
       </div>
-      <div style="flex:2 1 0;min-width:0;display:flex;flex-direction:column;gap:22px;min-height:0">
+      <div class="side" style="flex:2 1 0;min-width:0;display:flex;flex-direction:column;gap:22px;min-height:0">
         <div class="panel glass"><div class="panel-head"><h2>Data gaps</h2><span class="badge" id="gapCount">0</span></div><div id="gaps" style="display:flex;flex-direction:column;gap:10px"></div></div>
         <div class="panel glass" style="flex:1"><div class="panel-head"><h2>No PIC assigned</h2><span class="badge" id="nopicCount">0</span></div><div id="nopic" style="display:flex;flex-direction:column;gap:10px"></div></div>
       </div>
@@ -181,10 +225,14 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const fmt = (n) => Math.round(n).toLocaleString("en-MY");
 const DAY = 86400000;
 
+const isPortrait = () => innerHeight > innerWidth;
 function fit() {
-  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
-  $("#stage").style.transform = `scale(${s})`;
+  const p = isPortrait(), w = p ? 1080 : 1920, h = p ? 1920 : 1080;
+  const stage = $("#stage");
+  if (stage.classList.contains("portrait") !== p) { stage.classList.toggle("portrait", p); if (lastFleet) render(lastFleet); }
+  stage.style.transform = `scale(${Math.min(innerWidth / w, innerHeight / h)})`;
 }
+let lastFleet = null;
 addEventListener("resize", fit); fit();
 
 function parseCSV(text) {
@@ -273,6 +321,7 @@ const RANK = { overdue: 0, check: 1, nodata: 2, due: 3, ok: 4 };
 const LABEL = { overdue: "Overdue", check: "Check data", nodata: "No data", due: "Due soon", ok: "OK" };
 
 function render(fleet, updatedAt) {
+  lastFleet = fleet;
   fleet.sort((a, b) => RANK[a.s] - RANK[b.s] || a.key - b.key);
   const n = (s) => fleet.filter((v) => s.includes(v.s)).length;
 
@@ -282,7 +331,7 @@ function render(fleet, updatedAt) {
     <div class="count c-ok"><b>${n(["ok"])}</b><span>OK</span></div>
     <div class="count c-none"><b>${n(["nodata"])}</b><span>No data</span></div>`;
 
-  const cols = fleet.length > 20 ? 6 : 5;
+  const cols = isPortrait() ? (fleet.length > 18 ? 4 : 3) : fleet.length > 20 ? 6 : 5;
   const grid = $("#grid");
   grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
   grid.style.gridTemplateRows = `repeat(${Math.max(1, Math.ceil(fleet.length / cols))}, minmax(0,1fr))`;
@@ -291,7 +340,7 @@ function render(fleet, updatedAt) {
       <div class="row1"><div class="plate">${esc(v.plate)}</div><div class="chip">${LABEL[v.s]}</div></div>
       <div class="model">${esc(v.model)}</div>
       <div class="spacer"></div>
-      <div class="item">${esc(v.item)}</div>
+      <div class="itemrow"><div class="item">${esc(v.item)}</div><div class="chip chip2">${LABEL[v.s]}</div></div>
       <div class="remain">${esc(v.remain)}</div>
       <div class="track"><i style="width:${v.pct.toFixed(0)}%"></i></div>
       <div class="foot"><span>${esc(v.pic || "No PIC")}</span><span>${esc(v.odo)}</span></div>
@@ -301,10 +350,8 @@ function render(fleet, updatedAt) {
   $("#queue").innerHTML = queue.length ? queue.map((v) => `
     <div class="qrow ${v.s === "due" ? "q-due" : "q-over"}">
       <div class="km">${esc(v.s === "check" ? "Check data" : v.remain.replace(/ km/, ""))}</div>
-      <div class="pl">${esc(v.plate)}</div>
-      <div>${esc(v.model)}</div>
-      <div>${esc(v.pic || "No PIC")}</div>
-      <div class="ls">${esc(v.lastText)}</div>
+      <div><span class="pl">${esc(v.plate)}</span><span class="sub">${esc(v.model)}</span></div>
+      <div>${esc(v.pic || "No PIC")}<span class="sub ls">Last service ${esc(v.lastText)}</span></div>
     </div>`).join("") : `<div class="empty">Nothing due. Every vehicle is within its service interval.</div>`;
 
   const noRecords = fleet.filter((v) => v.s === "nodata" && v.gaps[0] === "No mileage or service records");
