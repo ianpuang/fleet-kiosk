@@ -2,9 +2,10 @@
 
 Static kiosk page served by GitHub Pages. A GitHub Action pulls the published
 maintenance sheet (CSV) every 5 minutes, commits a snapshot to `data/` when the sheet
-changed, and redeploys. The open kiosk page re-reads the snapshot every 5 minutes, so it
-picks up each sync without a manual refresh. GitHub often starts scheduled runs 5-20
-minutes late, so expect changes to show within roughly 5-20 minutes.
+changed, and redeploys. The open kiosk page reads the published sheet directly every 2 minutes
+(Google refreshes the published CSV about every 5 minutes) and falls back to the
+`data/` snapshot if Google can't be reached. Sheet edits show on the kiosk within
+about 2-7 minutes. The snapshot is only a backup, so GitHub's late scheduled runs don't matter.
 
 ## Files
 - `index.html` — the kiosk (two screens, rotates every 20 s; portrait 1080x1920 layout for the standing kiosk, landscape 1920x1080 otherwise)

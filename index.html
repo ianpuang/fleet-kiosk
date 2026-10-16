@@ -210,13 +210,16 @@
 
 <script>
 const CONFIG = {
+  // Read the published sheet directly (Google allows cross-origin reads); fall back to the
+  // snapshot the GitHub Action keeps in data/ if Google can't be reached.
+  sheetUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQFR4gLNh98elyMPUuyc-oVN2DwcNd44-_jGEs5r2FVnkMmBk4LvDT57lKWIICaAJWsqcvDJ_h75sVK/pub?output=csv",
   csvUrl: "data/fleet.csv",
   updatedUrl: "data/updated.txt",
   dueSoonKm: 2000,
   dueSoonDays: 14,
   rotateSeconds: 20,
-  reloadMinutes: 5,        // re-read the local snapshot; the Action refreshes it every ~5 minutes
-  staleHours: 2,           // warn if the Action hasn't synced for this long
+  reloadMinutes: 2,        // re-read the sheet (Google refreshes the published CSV about every 5 min)
+  staleHours: 2,           // warn if neither the sheet nor the snapshot has loaded for this long
   tz: "Asia/Kuching"
 };
 
@@ -369,27 +372,43 @@ function render(fleet, updatedAt) {
   setSync(updatedAt);
 }
 
-let lastUpdated = null;
+let lastUpdated = null, liveSheet = false;
 function setSync(updatedAt) {
   if (updatedAt) lastUpdated = updatedAt;
   if (!lastUpdated) return;
   const hrs = (Date.now() - lastUpdated.getTime()) / 3600000;
   const ago = hrs < 1 ? `${Math.max(1, Math.round(hrs * 60))} min ago` : `${Math.floor(hrs)} h ago`;
   const html = hrs > CONFIG.staleHours
-    ? `<span class="stale">Data not synced for ${Math.floor(hrs)} h. Check the GitHub Action.</span>`
-    : `Synced from the maintenance sheet ${ago}`;
+    ? `<span class="stale">Data not synced for ${Math.floor(hrs)} h. Check the network and the GitHub Action.</span>`
+    : liveSheet ? `Live from the maintenance sheet, checked ${ago}` : `Synced from the maintenance sheet ${ago} (backup copy)`;
   document.querySelectorAll(".sync").forEach((el) => (el.innerHTML = html));
+}
+
+async function fetchSheet() {
+  const r = await fetch(CONFIG.sheetUrl + "&t=" + Date.now(), { cache: "no-store" });
+  if (!r.ok) throw new Error("sheet HTTP " + r.status);
+  const text = await r.text();
+  if (!/plate number/i.test(text.slice(0, 300))) throw new Error("sheet header missing");
+  return text;
 }
 
 async function load() {
   try {
-    const bust = "?t=" + Date.now();
-    const [csv, upd] = await Promise.all([
-      fetch(CONFIG.csvUrl + bust).then((r) => { if (!r.ok) throw new Error(`Couldn't load ${CONFIG.csvUrl} (HTTP ${r.status}).`); return r.text(); }),
-      fetch(CONFIG.updatedUrl + bust).then((r) => (r.ok ? r.text() : "")).catch(() => "")
-    ]);
-    const updatedAt = upd.trim() ? new Date(upd.trim()) : null;
-    render(analyse(parseCSV(csv)), updatedAt && !isNaN(updatedAt) ? updatedAt : null);
+    let csv, updatedAt = null;
+    try {
+      csv = await fetchSheet();
+      updatedAt = new Date(); liveSheet = true;
+    } catch {
+      const bust = "?t=" + Date.now();
+      const [snap, upd] = await Promise.all([
+        fetch(CONFIG.csvUrl + bust).then((r) => { if (!r.ok) throw new Error(`Couldn't load ${CONFIG.csvUrl} (HTTP ${r.status}).`); return r.text(); }),
+        fetch(CONFIG.updatedUrl + bust).then((r) => (r.ok ? r.text() : "")).catch(() => "")
+      ]);
+      csv = snap; liveSheet = false;
+      const d = upd.trim() ? new Date(upd.trim()) : null;
+      updatedAt = d && !isNaN(d) ? d : null;
+    }
+    render(analyse(parseCSV(csv)), updatedAt);
     $("#error").style.display = "none";
   } catch (e) {
     const box = $("#error");
